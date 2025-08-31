@@ -1,5 +1,5 @@
 # CSE423-Project
-This is the repository of our project for CSE423 which is a Tiles Breaker Game. 
+This is the repository of our project for CSE423 which is a Tiles Breaker Game. Tiles Breaker 3D.py is the main project file.
   
 
 Core Gameplay
