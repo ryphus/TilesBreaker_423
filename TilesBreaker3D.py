@@ -24,6 +24,7 @@ BRICK_DEPTH = 40
 GRID_ROWS = 8
 GRID_COLS = 12
 POWER_UP_SIZE = 15
+PADDLE_MOVE_STEP = 30  # Add this constant near the top
 
 camera_pos = [200, 300, 600] 
 fovY = 60
@@ -39,7 +40,7 @@ class GameState:
         self.bricks = []
         self.power_ups = []
         
-        self.lives = 3
+        self.lives = 6  # Changed from 3 to 6
         self.score = 0
         self.level = 1
         self.streak = 0
@@ -152,7 +153,7 @@ def draw_paddle():
 def draw_balls():
     """Draw all balls in the game"""
     for ball in game_state.balls:
-        draw_sphere(ball['x'], ball['y'], ball['z'], BALL_RADIUS, 1.0, 1.0, 0.2)
+        draw_sphere(ball['x'], ball['y'], ball['z'], BALL_RADIUS, 1.0, 0, 0)
 
 def draw_bricks():
     """Draw all bricks with different colors based on type"""
@@ -365,11 +366,11 @@ def update_game():
 
 def keyboardListener(key, x, y):
     """Handle keyboard input"""
-    global game_state
+    global game_state, camera_pos
     if key == b'a' or key == b'A':
-        game_state.paddle_x = max(-400, game_state.paddle_x - 15)
+        game_state.paddle_x = max(-400, game_state.paddle_x - PADDLE_MOVE_STEP)
     elif key == b'd' or key == b'D':
-        game_state.paddle_x = min(400, game_state.paddle_x + 15)
+        game_state.paddle_x = min(400, game_state.paddle_x + PADDLE_MOVE_STEP)
     elif key == b'r' or key == b'R':
         game_state = GameState()
     elif key == b'p' or key == b'P':
@@ -377,23 +378,28 @@ def keyboardListener(key, x, y):
     elif key == b'q' or key == b'Q':  
         glutLeaveMainLoop() 
     elif ord(key) == 27:  
-        glutLeaveMainLoop() 
+        glutLeaveMainLoop()
+    elif key == b'g' or key == b'G':
+        camera_pos[2] -= 50
+    elif key == b'h' or key == b'H':
+        camera_pos[2] += 50
+    elif key == b'y' or key == b'Y':
+        camera_pos[1] -= 50
+    elif key == b'b' or key == b'B':
+        camera_pos[1] += 50
+
 
 def specialKeyListener(key, x, y):
     """Handle special keys (arrow keys)"""
     global camera_pos
     if key == GLUT_KEY_LEFT:
-        game_state.paddle_x = max(-400, game_state.paddle_x - 15)
+        game_state.paddle_x = max(-400, game_state.paddle_x - PADDLE_MOVE_STEP)
     elif key == GLUT_KEY_RIGHT:
-        game_state.paddle_x = min(400, game_state.paddle_x + 15)
+        game_state.paddle_x = min(400, game_state.paddle_x + PADDLE_MOVE_STEP)
     elif key == GLUT_KEY_UP:
         camera_pos[1] += 20  
     elif key == GLUT_KEY_DOWN:
         camera_pos[1] -= 20 
-    elif key == GLUT_KEY_PAGE_UP:  
-        camera_pos[2] -= 50
-    elif key == GLUT_KEY_PAGE_DOWN:  
-        camera_pos[2] += 50
 
 def mouseListener(button, state, x, y):
     """Handle mouse input"""
@@ -409,10 +415,45 @@ def setupCamera():
     gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], 
               0, 0, 0,                                   
               0, 1, 0)                                    
+TARGET_FPS = 60
+FRAME_DURATION = 1.0 / TARGET_FPS
+last_frame_time = None  # Will be set in main()
+
 def idle():
-    """Idle function for continuous updates"""
-    update_game()
-    glutPostRedisplay()
+    """Idle function for continuous updates at 60 FPS"""
+    global last_frame_time
+    if last_frame_time is None:
+        last_frame_time = time.time()
+    current_time = time.time()
+    if current_time - last_frame_time >= FRAME_DURATION:
+        update_game()
+        glutPostRedisplay()
+        last_frame_time = current_time
+
+def draw_heart(x, y, size):
+    """Draw a simple 2D heart shape at (x, y) in screen coordinates."""
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    glTranslatef(x, y, 0)
+    glScalef(size, size, 1)
+    glColor3f(1, 0, 0)
+    glBegin(GL_POLYGON)
+    for angle in range(0, 360, 10):
+        rad = math.radians(angle)
+        # Heart parametric equation
+        xh = 16 * math.sin(rad) ** 3
+        yh = 13 * math.cos(rad) - 5 * math.cos(2 * rad) - 2 * math.cos(3 * rad) - math.cos(4 * rad)
+        glVertex2f(xh, yh)
+    glEnd()
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 
 def showScreen():
     """Main display function"""
@@ -437,7 +478,11 @@ def showScreen():
         draw_balls()
         draw_bricks()
         draw_power_ups()
-        
+
+        # Draw hearts for lives in the top right corner
+        for i in range(game_state.lives):
+            draw_heart(WINDOW_WIDTH - 40 - i * 35, WINDOW_HEIGHT - 40, 1.2)
+
         draw_text(10, 770, f"Lives: {game_state.lives}")
         draw_text(10, 740, f"Score: {game_state.score}")
         draw_text(10, 710, f"Level: {game_state.level}")
@@ -456,6 +501,7 @@ def showScreen():
 
 def main():
     """Main function"""
+    global last_frame_time
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -475,7 +521,6 @@ def main():
     glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
     glLightfv(GL_LIGHT0, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
 
-    
     glClearColor(0.1, 0.1, 0.3, 1.0)
 
     glutDisplayFunc(showScreen)
@@ -483,6 +528,9 @@ def main():
     glutSpecialFunc(specialKeyListener)
     glutMouseFunc(mouseListener)
     glutIdleFunc(idle)
+
+    last_frame_time = time.time()  # Initialize after window setup
+
     glutMainLoop()
 
 if __name__ == "__main__":
