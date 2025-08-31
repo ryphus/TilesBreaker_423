@@ -12,29 +12,34 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 800
-PADDLE_WIDTH = 100
-PADDLE_HEIGHT = 20
-PADDLE_DEPTH = 30
-BALL_RADIUS = 10
-BRICK_WIDTH = 60
-BRICK_HEIGHT = 25
-BRICK_DEPTH = 40
+window_width = 1000
+window_height = 800
+
+Paddle_width = 100
+Paddle_height = 20
+Paddle_depth = 30
+
+Ball_radius = 10
+Brick_width = 60
+Brick_height = 25
+Brick_depth = 40
+
 GRID_ROWS = 8
 GRID_COLS = 12
 POWER_UP_SIZE = 15
-PADDLE_MOVE_STEP = 30  # Add this constant near the top
+PADDLE_MOVE_STEP = 30  
 
-camera_pos = [200, 300, 600] 
+camera_pos = [250,250, 600] 
 fovY = 60
+
+scene_rotation_y = 0  # dan bam er ta ektu issue 
 
 class GameState:
     def __init__(self):
         self.paddle_x = 0
         self.paddle_y = -300
         self.paddle_z = 0
-        self.paddle_width = PADDLE_WIDTH
+        self.Paddle_width = Paddle_width
         
         self.balls = []
         self.bricks = []
@@ -64,8 +69,8 @@ class GameState:
             'vel_z': 0
         }]
         
-        # Reset paddle size
-        self.paddle_width = PADDLE_WIDTH
+        # so paddle size will reset here, jokhon lagtese
+        self.Paddle_width = Paddle_width
         self.ball_speed_multiplier = 1.0
         self.paddle_expand_timer = 0
         
@@ -78,8 +83,8 @@ class GameState:
         
         for row in range(GRID_ROWS):
             for col in range(GRID_COLS):
-                x = start_x + col * (BRICK_WIDTH + 10)
-                y = start_y + row * (BRICK_HEIGHT + 10)
+                x = start_x + col * (Brick_width + 10)
+                y = start_y + row * (Brick_height + 10)
                 z = -row * 15  
                 
                 if random.random() < 0.05:
@@ -108,12 +113,12 @@ class GameState:
 game_state = GameState()
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
-    """Draw text on screen using orthographic projection"""
+    "orthographic projection use kore text draw kora lagbe"
     glColor3f(1, 1, 1)
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
     glLoadIdentity()
-    gluOrtho2D(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
+    gluOrtho2D(0, window_width, 0, window_height)
     
     glMatrixMode(GL_MODELVIEW)
     glPushMatrix()
@@ -129,7 +134,7 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glMatrixMode(GL_MODELVIEW)
 
 def draw_cube(x, y, z, width, height, depth, r, g, b):
-    """Draw a colored cube at specified position"""
+    "coloured cube , specific position e"
     glPushMatrix()
     glTranslatef(x, y, z)
     glColor3f(r, g, b)
@@ -138,7 +143,7 @@ def draw_cube(x, y, z, width, height, depth, r, g, b):
     glPopMatrix()
 
 def draw_sphere(x, y, z, radius, r, g, b):
-    """Draw a colored sphere at specified position"""
+    "ekhane sphere"
     glPushMatrix()
     glTranslatef(x, y, z)
     glColor3f(r, g, b)
@@ -146,17 +151,17 @@ def draw_sphere(x, y, z, radius, r, g, b):
     glPopMatrix()
 
 def draw_paddle():
-    """Draw the game paddle with 3D positioning"""
+    #paddle ta o cube shape 
     draw_cube(game_state.paddle_x, game_state.paddle_y, 20,
-              game_state.paddle_width, PADDLE_HEIGHT, PADDLE_DEPTH, 0.2, 0.8, 1.0)
+              game_state.Paddle_width, Paddle_height, Paddle_depth, 0.2, 0.8, 1.0)
 
 def draw_balls():
-    """Draw all balls in the game"""
+    
     for ball in game_state.balls:
-        draw_sphere(ball['x'], ball['y'], ball['z'], BALL_RADIUS, 1.0, 0, 0)
+        draw_sphere(ball['x'], ball['y'], ball['z'], Ball_radius, 1.0, 0, 0)
 
 def draw_bricks():
-    """Draw all bricks with different colors based on type"""
+    #based on type brick will have different xolours
     for brick in game_state.bricks:
         if brick['type'] == 'standard':
             r, g, b = 1.0, 0.5, 0.0 
@@ -170,10 +175,10 @@ def draw_bricks():
             r, g, b = 0.5, 0.5, 0.5  
             
         draw_cube(brick['x'], brick['y'], brick['z'],
-                  BRICK_WIDTH, BRICK_HEIGHT, BRICK_DEPTH, r, g, b)
+                  Brick_width, Brick_height, Brick_depth, r, g, b)
 
 def draw_power_ups():
-    """Draw power-up droplets"""
+    #power up droplets
     for power_up in game_state.power_ups:
         if power_up['type'] == 'expand_paddle':
             r, g, b = 0.0, 1.0, 0.0 
@@ -191,47 +196,47 @@ def draw_power_ups():
         draw_sphere(power_up['x'], power_up['y'], power_up['z'], POWER_UP_SIZE, r, g, b)
 
 def draw_walls():
-    """Draw game boundaries with 3D depth"""
+   #3d depth diye boundary create kora
     draw_cube(-450, 0, -50, 20, 600, 200, 0.3, 0.3, 0.3)
     draw_cube(450, 0, -50, 20, 600, 200, 0.3, 0.3, 0.3)
     draw_cube(0, 350, -50, 900, 20, 200, 0.3, 0.3, 0.3)
     draw_cube(0, 0, -150, 900, 700, 20, 0.2, 0.2, 0.2)
 
 def check_ball_paddle_collision(ball):
-    """Check collision between ball and paddle"""
-    paddle_left = game_state.paddle_x - game_state.paddle_width/2
-    paddle_right = game_state.paddle_x + game_state.paddle_width/2
-    paddle_top = game_state.paddle_y + PADDLE_HEIGHT/2
-    paddle_bottom = game_state.paddle_y - PADDLE_HEIGHT/2
+    "collision check between ball and paddle"
+    paddle_left = game_state.paddle_x - game_state.Paddle_width/2
+    paddle_right = game_state.paddle_x + game_state.Paddle_width/2
+    paddle_top = game_state.paddle_y + Paddle_height/2
+    paddle_bottom = game_state.paddle_y - Paddle_height/2
     
-    if (ball['x'] + BALL_RADIUS >= paddle_left and 
-        ball['x'] - BALL_RADIUS <= paddle_right and
-        ball['y'] - BALL_RADIUS <= paddle_top and
-        ball['y'] + BALL_RADIUS >= paddle_bottom):
-        hit_pos = (ball['x'] - game_state.paddle_x) / (game_state.paddle_width/2)
+    if (ball['x'] + Ball_radius >= paddle_left and 
+        ball['x'] - Ball_radius <= paddle_right and
+        ball['y'] - Ball_radius <= paddle_top and
+        ball['y'] + Ball_radius >= paddle_bottom):
+        hit_pos = (ball['x'] - game_state.paddle_x) / (game_state.Paddle_width/2)
         ball['vel_x'] = hit_pos * 3
         ball['vel_y'] = abs(ball['vel_y'])
-        ball['y'] = paddle_top + BALL_RADIUS
+        ball['y'] = paddle_top + Ball_radius
         return True
     return False
 
 def check_ball_brick_collision(ball):
-    """Check collision between ball and bricks"""
+    "Check collision between ball and bricks"
     for brick in game_state.bricks[:]:
-        brick_left = brick['x'] - BRICK_WIDTH/2
-        brick_right = brick['x'] + BRICK_WIDTH/2
-        brick_top = brick['y'] + BRICK_HEIGHT/2
-        brick_bottom = brick['y'] - BRICK_HEIGHT/2
+        brick_left = brick['x'] - Brick_width/2
+        brick_right = brick['x'] + Brick_width/2
+        brick_top = brick['y'] + Brick_height/2
+        brick_bottom = brick['y'] - Brick_height/2
         
-        if (ball['x'] + BALL_RADIUS >= brick_left and 
-            ball['x'] - BALL_RADIUS <= brick_right and
-            ball['y'] + BALL_RADIUS >= brick_bottom and
-            ball['y'] - BALL_RADIUS <= brick_top):
+        if (ball['x'] + Ball_radius >= brick_left and 
+            ball['x'] - Ball_radius <= brick_right and
+            ball['y'] + Ball_radius >= brick_bottom and
+            ball['y'] - Ball_radius <= brick_top):
             
-            overlap_left = ball['x'] + BALL_RADIUS - brick_left
-            overlap_right = brick_right - (ball['x'] - BALL_RADIUS)
-            overlap_top = brick_top - (ball['y'] - BALL_RADIUS)
-            overlap_bottom = ball['y'] + BALL_RADIUS - brick_bottom
+            overlap_left = ball['x'] + Ball_radius - brick_left
+            overlap_right = brick_right - (ball['x'] - Ball_radius)
+            overlap_top = brick_top - (ball['y'] - Ball_radius)
+            overlap_bottom = ball['y'] + Ball_radius - brick_bottom
             
             min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
             
@@ -257,8 +262,8 @@ def check_ball_brick_collision(ball):
             return True
     return False
 
-def create_power_up(x, y):
-    """Create a power-up at specified position"""
+def create_power_up(x, y): #ekhane ektu issue ase
+    "Create a power-up at specified position"
     power_types = ['expand_paddle', 'shrink_paddle', 'multi_ball', 'speed_up', 'slow_down', 'extra_life']
     power_type = random.choice(power_types)
     
@@ -271,11 +276,11 @@ def create_power_up(x, y):
     })
 
 def check_power_up_collection():
-    """Check if paddle collects power-ups"""
+    "Check if paddle collects power-ups"
     for power_up in game_state.power_ups[:]:
-        paddle_left = game_state.paddle_x - game_state.paddle_width/2
-        paddle_right = game_state.paddle_x + game_state.paddle_width/2
-        paddle_top = game_state.paddle_y + PADDLE_HEIGHT/2
+        paddle_left = game_state.paddle_x - game_state.Paddle_width/2
+        paddle_right = game_state.paddle_x + game_state.Paddle_width/2
+        paddle_top = game_state.paddle_y + Paddle_height/2
         
         if (power_up['x'] >= paddle_left and power_up['x'] <= paddle_right and
             power_up['y'] <= paddle_top and power_up['y'] >= paddle_top - 30):
@@ -284,14 +289,14 @@ def check_power_up_collection():
             game_state.power_ups.remove(power_up)
 
 def apply_power_up(power_type):
-    """Apply power-up effect"""
+    #"Apply power-up effect"
     if power_type == 'expand_paddle':
-        game_state.paddle_width = min(200, game_state.paddle_width * 1.5)
+        game_state.Paddle_width = min(200, game_state.Paddle_width * 1.5)
         game_state.paddle_expand_timer = 300  # 5 seconds at 60 FPS
     elif power_type == 'shrink_paddle':
-        game_state.paddle_width = max(50, game_state.paddle_width * 0.7)
+        game_state.Paddle_width = max(50, game_state.Paddle_width * 0.7)
         game_state.paddle_expand_timer = 300
-    elif power_type == 'multi_ball':
+    elif power_type == 'multi_ball': #ekhane baraite parbo dorkar e
         if len(game_state.balls) == 1:
             ball = game_state.balls[0]
             for _ in range(2):
@@ -307,13 +312,13 @@ def apply_power_up(power_type):
         game_state.lives += 1
 
 def update_game():
-    """Update game state"""
+    ####very important game state update
     if game_state.game_over or game_state.paused:
         return
     if game_state.paddle_expand_timer > 0:
         game_state.paddle_expand_timer -= 1
         if game_state.paddle_expand_timer == 0:
-            game_state.paddle_width = PADDLE_WIDTH
+            game_state.Paddle_width = Paddle_width
 
     for ball in game_state.balls[:]:
         ball['x'] += ball['vel_x'] * game_state.ball_speed_multiplier
@@ -365,8 +370,8 @@ def update_game():
             game_state.reset_level()
 
 def keyboardListener(key, x, y):
-    """Handle keyboard input"""
-    global game_state, camera_pos
+    #keyboard
+    global game_state, camera_pos, scene_rotation_y
     if key == b'a' or key == b'A':
         game_state.paddle_x = max(-400, game_state.paddle_x - PADDLE_MOVE_STEP)
     elif key == b'd' or key == b'D':
@@ -383,14 +388,18 @@ def keyboardListener(key, x, y):
         camera_pos[2] -= 50
     elif key == b'h' or key == b'H':
         camera_pos[2] += 50
-    elif key == b'y' or key == b'Y':
+    elif key == b'y' or key == b'Y': 
         camera_pos[1] -= 50
     elif key == b'b' or key == b'B':
         camera_pos[1] += 50
+    elif key == b'j' or key == b'J':  # Rotate left
+        scene_rotation_y -= 5
+    elif key == b'l' or key == b'L':  # Rotate right
+        scene_rotation_y += 5
 
 
 def specialKeyListener(key, x, y):
-    """Handle special keys (arrow keys)"""
+    #"Handle special keys (arrow keys)"
     global camera_pos
     if key == GLUT_KEY_LEFT:
         game_state.paddle_x = max(-400, game_state.paddle_x - PADDLE_MOVE_STEP)
@@ -402,25 +411,25 @@ def specialKeyListener(key, x, y):
         camera_pos[1] -= 20 
 
 def mouseListener(button, state, x, y):
-    """Handle mouse input"""
+    #amra chaile ei ta add korte pare j , mouse diyeo kaj kora gelo, apadoto blank funtion banay rakhsi
     pass
 
 def setupCamera():
-    """Setup camera view"""
+     
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(fovY, WINDOW_WIDTH/WINDOW_HEIGHT, 0.1, 2000)
+    gluPerspective(fovY, window_width / window_height, 1, 2000)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], 
-              0, 0, 0,                                   
-              0, 1, 0)                                    
+    gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], 0, 0, 0, 0, 1, 0)
+    glRotatef(scene_rotation_y, 0, 1, 0)  # Rotate scene left/right
+
 TARGET_FPS = 60
 FRAME_DURATION = 1.0 / TARGET_FPS
 last_frame_time = None  # Will be set in main()
 
 def idle():
-    """Idle function for continuous updates at 60 FPS"""
+    #continous update er jonno idle funtion at fps 60
     global last_frame_time
     if last_frame_time is None:
         last_frame_time = time.time()
@@ -431,11 +440,11 @@ def idle():
         last_frame_time = current_time
 
 def draw_heart(x, y, size):
-    """Draw a simple 2D heart shape at (x, y) in screen coordinates."""
+   #important na , heart shape draw
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
     glLoadIdentity()
-    gluOrtho2D(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
+    gluOrtho2D(0, window_width, 0, window_height)
     glMatrixMode(GL_MODELVIEW)
     glPushMatrix()
     glLoadIdentity()
@@ -445,7 +454,7 @@ def draw_heart(x, y, size):
     glBegin(GL_POLYGON)
     for angle in range(0, 360, 10):
         rad = math.radians(angle)
-        # Heart parametric equation
+        # Heart parametric equation , https://en.wikipedia.org/wiki/Heart#Parametric_equation #booth strap eo ase i guess
         xh = 16 * math.sin(rad) ** 3
         yh = 13 * math.cos(rad) - 5 * math.cos(2 * rad) - 2 * math.cos(3 * rad) - math.cos(4 * rad)
         glVertex2f(xh, yh)
@@ -456,10 +465,10 @@ def draw_heart(x, y, size):
     glMatrixMode(GL_MODELVIEW)
 
 def showScreen():
-    """Main display function"""
+    ## Main display function ***
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+    glViewport(0, 0, window_width, window_height)
     
     setupCamera()
     
@@ -481,7 +490,7 @@ def showScreen():
 
         # Draw hearts for lives in the top right corner
         for i in range(game_state.lives):
-            draw_heart(WINDOW_WIDTH - 40 - i * 35, WINDOW_HEIGHT - 40, 1.2)
+            draw_heart(window_width - 40 - i * 35, window_height - 40, 1.2)
 
         draw_text(10, 770, f"Lives: {game_state.lives}")
         draw_text(10, 740, f"Score: {game_state.score}")
@@ -504,7 +513,7 @@ def main():
     global last_frame_time
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+    glutInitWindowSize(window_width, window_height)
     glutInitWindowPosition(100, 100)
     glutCreateWindow(b"3D Tiles Breaker Game")
     
@@ -535,3 +544,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+#Alhamdulillah 
